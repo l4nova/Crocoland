@@ -327,19 +327,32 @@ function openCart(){
 const tEl=document.getElementById('toast'),tMsg=document.getElementById('toastMsg');let tT;
 function toast(msg){tMsg.textContent=msg;tEl.classList.add('show');clearTimeout(tT);tT=setTimeout(()=>tEl.classList.remove('show'),2600);}
 
-/* ============ ROUTER (internal state + persistence) ============ */
+/* ============ ROUTER (internal state + URL sync) ============ */
 let VIEW={path:'/',q:{},anchor:null};
 function saveView(){ try{ sessionStorage.setItem('crocView', JSON.stringify({path:VIEW.path,q:VIEW.q})); }catch(e){} }
-function go(target){
+function viewToPath(){
+  let p=VIEW.path||'/';
+  if(VIEW.q && Object.keys(VIEW.q).length){ p+='?'+Object.keys(VIEW.q).map(k=>k+'='+encodeURIComponent(VIEW.q[k])).join('&'); }
+  return p;
+}
+function parseTarget(target){
   let raw=String(target).replace(/^#/,'')||'/';
   let anchor=null; const am=raw.match(/^\/#(.+)$/);
   if(am){anchor=am[1];raw='/';}
   let [path,query]=raw.split('?');
-  let q={}; if(query) query.split('&').forEach(p=>{const[k,v]=p.split('=');q[k]=decodeURIComponent(v||'')});
-  VIEW={path:path||'/',q,anchor};
-  saveView();
-  route();
+  let q={}; if(query) query.split('&').forEach(p=>{const[k,v]=p.split('=');if(k)q[k]=decodeURIComponent(v||'')});
+  return {path:path||'/',q,anchor};
 }
+function syncURL(){
+  const path=viewToPath();
+  if(IN_FRAME){ try{ window.parent.postMessage({crocNav:path},'*'); }catch(e){} }
+  else { try{ history.replaceState(null,'','#!'+path); }catch(e){} }
+}
+function go(target){
+  VIEW=parseTarget(target);
+  saveView(); syncURL(); route();
+}
+function applyView(view,noScroll){ VIEW=view; saveView(); route(noScroll); }
 function route(noScroll){
   const {path,q,anchor}=VIEW;
   if(path.startsWith('/product/')){renderProduct(path.split('/product/')[1]);}
@@ -349,11 +362,20 @@ function route(noScroll){
   observeRv();
 }
 function initView(){
+  // отримати маршрут від батьківської сторінки (адресний рядок) або зі своєї
+  window.addEventListener('message', function(e){
+    var d=e.data||{};
+    if(d && typeof d.crocRestore==='string'){ applyView(parseTarget('#'+d.crocRestore), true); }
+  });
+  if(IN_FRAME){ try{ window.parent.postMessage({crocReady:true},'*'); }catch(e){} }
+  try{
+    if(!IN_FRAME && location.hash.indexOf('#!')===0){ applyView(parseTarget('#'+location.hash.slice(2)), true); return; }
+  }catch(e){}
   try{
     const saved=sessionStorage.getItem('crocView');
-    if(saved){ const v=JSON.parse(saved); VIEW={path:v.path||'/',q:v.q||{},anchor:null}; route(true); return; }
+    if(saved){ const v=JSON.parse(saved); applyView({path:v.path||'/',q:v.q||{},anchor:null}, true); return; }
   }catch(e){}
-  VIEW={path:'/',q:{},anchor:null}; route(true);
+  applyView({path:'/',q:{},anchor:null}, true);
 }
 
 /* ============ COMPONENTS ============ */
