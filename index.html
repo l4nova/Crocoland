@@ -7,7 +7,7 @@
 <style>html,body{margin:0;padding:0;background:#F1ECE0}</style>
 </head>
 <body>
-<!-- ===== CROCAHOLIC вітрина — вставити в HTML-блок (T123) Tilda ===== -->
+<!-- ===== CROCAHOLIC вітрина — HTML-блок (T123) Tilda ===== -->
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@600;700;800;900&display=swap" rel="stylesheet">
 <style>
 #croc-app{
@@ -314,10 +314,19 @@ const SVG = {
   back:'<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a6 6 0 0 1 0 12h-3"/></svg>'
 };
 
-/* ============ ORDERS VIA TILDA STORE ============ */
+/* ============ ORDERS → TILDA CART (postMessage bridge) ============ */
 const STORE_URL='https://crocaholic.com.ua';
-function goToProduct(id){const m=byId[id];const url=(m&&m.url)?m.url:STORE_URL;window.open(url,'_blank','noopener');toast('Відкриваю товар на crocaholic.com.ua →');}
-function openCart(){window.open(STORE_URL,'_blank','noopener');toast('Відкриваю магазин crocaholic.com.ua →');}
+const IN_FRAME=(window.parent && window.parent!==window);
+function tildaAdd(id){
+  const m=byId[id]; if(!m) return;
+  const payload={name:m.name, price:m.price, sku:m.id, img:(m.pics&&m.pics[0])||'', url:m.url||''};
+  if(IN_FRAME){ window.parent.postMessage({tcartAdd:payload},'*'); toast('«'+m.name+'» додано в кошик 🛒'); }
+  else { window.open(m.url||STORE_URL,'_blank','noopener'); }
+}
+function openCart(){
+  if(IN_FRAME){ window.parent.postMessage({tcartOpen:true},'*'); }
+  else { window.open(STORE_URL,'_blank','noopener'); }
+}
 
 /* ============ TOAST ============ */
 const tEl=document.getElementById('toast'),tMsg=document.getElementById('toastMsg');let tT;
@@ -367,7 +376,7 @@ function cardHTML(m){
     </div>
   </div>`;
 }
-function quickAdd(id){goToProduct(id);}
+function quickAdd(id){tildaAdd(id);}
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 /* ============ HOME ============ */
@@ -566,7 +575,7 @@ function renderProduct(id){
         <div class="sizebox" id="sizeBox">${sizes.map((s,i)=>`<button data-size="${esc(s.size)}" ${s.avail===0?'disabled':''} onclick="pickSize(this)">${esc(s.size)}</button>`).join('')}</div>
         <div class="buyrow">
           <div class="qty"><button onclick="qChange(-1)">−</button><span id="qVal">1</span><button onclick="qChange(1)">+</button></div>
-          <button class="btn btn-dark" onclick="buyNow('${m.id}')">Купити на сайті <span class="arrow">${SVG.arrow}</span></button>
+          <button class="btn btn-dark" onclick="buyNow('${m.id}')">Додати в кошик <span class="arrow">${SVG.arrow}</span></button>
         </div>
         <div class="feat-list">
           <div>${SVG.shield} Оригінал Crocs</div><div>${SVG.truck} Доставка 24 год</div><div>${SVG.back} Повернення 14 днів</div>
@@ -584,7 +593,7 @@ function setG(i){const m=byId[curId()];document.getElementById('gImg').src=m.pic
 function curId(){return VIEW.path.split('/product/')[1];}
 function pickSize(btn){document.querySelectorAll('#sizeBox button').forEach(b=>b.classList.remove('on'));btn.classList.add('on');PDP.size=btn.dataset.size;}
 function qChange(d){PDP.qty=Math.max(1,PDP.qty+d);document.getElementById('qVal').textContent=PDP.qty;}
-function buyNow(id){goToProduct(id);}
+function buyNow(id){tildaAdd(id);}
 
 /* ============ FOOTER ============ */
 function footerHTML(){return '';}
@@ -598,14 +607,9 @@ go('#/');
 <!-- ===== /CROCAHOLIC ===== -->
 
 <script>
-(function(){
-  function postH(){ try{ parent.postMessage({crocH: document.documentElement.scrollHeight}, '*'); }catch(e){} }
-  window.addEventListener('load', postH);
-  window.addEventListener('resize', postH);
-  if(window.ResizeObserver){ new ResizeObserver(postH).observe(document.body); }
-  setInterval(postH, 1000);
-})();
+(function(){function postH(){try{parent.postMessage({crocH:document.documentElement.scrollHeight},'*');}catch(e){}}
+window.addEventListener('load',postH);window.addEventListener('resize',postH);
+if(window.ResizeObserver){new ResizeObserver(postH).observe(document.body);}setInterval(postH,1000);})();
 </script>
-
 </body>
 </html>
