@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CROCAHOLIC</title>
+<title>CROCOLAND</title>
 <style>html,body{margin:0;padding:0;background:#F1ECE0}</style>
 </head>
 <body>
-<!-- ===== CROCAHOLIC вітрина ===== -->
+<!-- ===== CROCOLAND вітрина ===== -->
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@600;700;800;900&display=swap" rel="stylesheet">
 <style>
 #croc-app{
@@ -220,7 +220,13 @@ footer{padding:66px 0 38px;border-top:1px solid var(--line);margin-top:30px}
 #croc-app .gallery{position:sticky;top:96px}
 #croc-app .gmain{background:radial-gradient(circle at 50% 40%,#fff,var(--cream-2));border:1px solid var(--line);border-radius:26px;aspect-ratio:1/1;display:grid;place-items:center;overflow:hidden;position:relative}
 #croc-app .gmain img{width:84%;height:84%;object-fit:contain;filter:drop-shadow(0 26px 26px rgba(0,0,0,.2));transition:.4s}
-#croc-app .gmark{position:absolute;top:18px;left:18px;background:var(--coral);color:#fff;font-weight:800;font-size:14px;padding:7px 14px;border-radius:22px}
+#croc-app .gwrap{position:relative}
+#croc-app .gmark{position:absolute;top:14px;left:14px;background:var(--coral);color:#fff;font-weight:800;font-size:14px;padding:7px 14px;border-radius:22px;z-index:4;box-shadow:0 6px 16px -6px rgba(0,0,0,.4)}
+#croc-app .backbtn{display:inline-flex;align-items:center;gap:9px;background:var(--paper);border:1px solid var(--line);border-radius:30px;padding:9px 17px 9px 11px;font-family:'Manrope';font-weight:700;font-size:14.5px;cursor:pointer;color:var(--ink);transition:.25s;margin-bottom:16px}
+#croc-app .backbtn:hover{background:var(--ink);color:var(--cream)}
+#croc-app .backbtn .ic{width:26px;height:26px;border-radius:50%;background:var(--lime);color:var(--ink);display:grid;place-items:center;transition:.25s}
+#croc-app .backbtn:hover .ic{background:var(--cream)}
+#croc-app .backbtn .ic svg{width:16px;height:16px}
 #croc-app .thumbs{display:flex;gap:12px;margin-top:14px;flex-wrap:wrap}
 #croc-app .thumb{width:78px;height:78px;border-radius:16px;border:1px solid var(--line);background:var(--paper);cursor:pointer;display:grid;place-items:center;overflow:hidden;transition:.2s}
 #croc-app .thumb img{width:78%;height:78%;object-fit:contain}
@@ -287,6 +293,11 @@ footer{padding:66px 0 38px;border-top:1px solid var(--line);margin-top:30px}
 #croc-app .foot-grid{grid-template-columns:1fr}
 #croc-app .search input{width:120px}
 #croc-app .card .nm{font-size:15px}
+#croc-app .bento{grid-template-columns:1fr;grid-auto-rows:auto}
+#croc-app .bx{min-height:150px}
+#croc-app .bx.wide, #croc-app .bx.tall{grid-column:auto;grid-row:auto}
+#croc-app .bx .big{font-size:44px}
+#croc-app .bx h3{font-size:21px}
 }
 </style>
 <div id="croc-app"><main id="app"></main><div class="toast" id="toast"><svg fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg><span id="toastMsg"></span></div></div>
@@ -358,9 +369,13 @@ function route(noScroll){
   if(path.startsWith('/product/')){renderProduct(path.split('/product/')[1]);}
   else if(path.startsWith('/catalog')){renderCatalog(q);}
   else {renderHome(); if(anchor&&!noScroll){setTimeout(()=>{const el=document.getElementById(anchor);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},60);observeRv();return;}}
-  if(!noScroll){ const root=document.getElementById('croc-app'); if(root) setTimeout(()=>root.scrollIntoView({behavior:'smooth',block:'start'}),20); }
+  if(!noScroll){
+    if(IN_FRAME){ try{ window.parent.postMessage({crocScroll:true},'*'); }catch(e){} }
+    else { const root=document.getElementById('croc-app'); if(root) setTimeout(()=>root.scrollIntoView({behavior:'smooth',block:'start'}),20); }
+  }
   observeRv();
 }
+function goBack(){ if(IN_FRAME){ try{ window.parent.postMessage({crocBack:true},'*'); }catch(e){} } else { history.back(); } }
 function initView(){
   // отримати маршрут від батьківської сторінки (адресний рядок) або зі своєї
   window.addEventListener('message', function(e){
@@ -480,7 +495,7 @@ function renderHome(){
 
   <section class="sec" id="why" style="padding-top:30px">
     <div class="wrap">
-      <div class="sec-head rv"><div><div class="tag">Чому CROCAHOLIC</div><h2 style="margin-top:14px">Більше, ніж<br>просто крокси</h2></div><p>Ми привозимо тільки оригінал і дбаємо, щоб покупка була приємною.</p></div>
+      <div class="sec-head rv"><div><div class="tag">Чому CROCOLAND</div><h2 style="margin-top:14px">Більше, ніж<br>просто крокси</h2></div><p>Ми привозимо тільки оригінал і дбаємо, щоб покупка була приємною.</p></div>
       <div class="bento rv">
         <div class="bx lime tall"><div class="ic">${SVG.shield}</div><div><div class="big">100%</div><h3 style="margin-top:8px">Гарантований оригінал</h3><p>Кожна пара — справжні Crocs з повним пакетом гарантії.</p></div></div>
         <div class="bx cream wide"><div class="ic">${SVG.truck}</div><div><h3>Швидка доставка по Україні</h3><p>Відправка Новою Поштою за 24 години. Безкоштовно від 2000 грн.</p></div></div>
@@ -500,7 +515,7 @@ function renderHome(){
   </section>
 
   ${footerHTML()}`;
-  document.getElementById('bandTrack').innerHTML = Array(2).fill('<span class="star">★</span><span>ОРИГІНАЛЬНІ КР<span class="o">О</span>КСИ</span><span class="star">★</span><span>ДЛЯ ДОРОСЛИХ ТА ДІТЕЙ</span><span class="star">★</span><span>CR<span class="o">O</span>CAHOLIC</span>').join('');
+  document.getElementById('bandTrack').innerHTML = Array(2).fill('<span class="star">★</span><span>ОРИГІНАЛЬНІ КР<span class="o">О</span>КСИ</span><span class="star">★</span><span>ДЛЯ ДОРОСЛИХ ТА ДІТЕЙ</span><span class="star">★</span><span>CR<span class="o">O</span>COLAND</span>').join('');
 }
 function sub(){const m=document.getElementById('mail');if(m.value&&m.value.includes('@')){toast('Готово! Перевір пошту 🎉');m.value='';}else{toast('Введи коректний email');}}
 
@@ -587,10 +602,11 @@ function renderProduct(id){
   const sim2=similar.length<4?similar.concat(MODELS.filter(x=>x.audience===m.audience&&x.id!==m.id&&x.cat!==m.cat).slice(0,4-similar.length)):similar;
   document.getElementById('app').innerHTML=`
   <div class="wrap pdp">
+    <button class="backbtn" onclick="goBack()"><span class="ic"><svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></span>Назад</button>
     <div class="crumb"><a onclick="go('#/')">Головна</a> / <a onclick="go('#/catalog?aud=${m.audience}')">${m.audience==='kids'?'Для дітей':'Для дорослих'}</a> / <a onclick="go('#/catalog')">Каталог</a> / <span>${esc(m.cat)}</span></div>
     <div class="pdp-grid">
       <div class="gallery">
-        <div class="gmain">${d?`<span class="gmark">-${d}%</span>`:''}<img id="gImg" src="${m.pics[0]}" alt="${esc(m.name)}"></div>
+        <div class="gwrap">${d?`<span class="gmark">-${d}%</span>`:''}<div class="gmain"><img id="gImg" src="${m.pics[0]}" alt="${esc(m.name)}"></div></div>
         ${m.pics.length>1?`<div class="thumbs" id="thumbs">${m.pics.map((p,i)=>`<div class="thumb ${i===0?'on':''}" onclick="setG(${i})"><img src="${p}" alt=""></div>`).join('')}</div>`:''}
       </div>
       <div class="pdp-info">
