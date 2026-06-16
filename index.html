@@ -367,7 +367,10 @@ function applyFeed(text){
   try{ const models=buildModelsFromCSV(text); if(models&&models.length){ MODELS=models; indexModels(); route(true); } }
   catch(err){ console.warn('[CROC] feed parse failed:',err); }
 }
-window.addEventListener('message',function(e){ var d=e.data||{}; if(d&&typeof d.crocFeedCSV==='string') applyFeed(d.crocFeedCSV); });
+window.addEventListener('message',function(e){ var d=e.data||{};
+  if(d&&typeof d.crocFeedCSV==='string') applyFeed(d.crocFeedCSV);
+  if(d&&typeof d.crocHeader==='number'){ var px=Math.max(0,Math.min(180,d.crocHeader)); var el=document.getElementById('croc-app'); if(el) el.style.paddingTop=px+'px'; }
+});
 const fmt = n => Math.round(n).toLocaleString('uk-UA');
 const disc = m => m.oldprice && m.oldprice>m.price ? Math.round((m.oldprice-m.price)/m.oldprice*100) : 0;
 const SVG = {
@@ -437,6 +440,7 @@ function route(noScroll){
 }
 function goBack(){ if(IN_FRAME){ try{ window.parent.postMessage({crocBack:true},'*'); }catch(e){} } else { history.back(); } }
 function initView(){
+  if(IN_FRAME){ var ce=document.getElementById('croc-app'); if(ce) ce.style.paddingTop='70px'; }
   // отримати маршрут від батьківської сторінки (адресний рядок) або зі своєї
   window.addEventListener('message', function(e){
     var d=e.data||{};
