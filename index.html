@@ -711,7 +711,17 @@ function observeRv(){if(io)io.disconnect();io=new IntersectionObserver(es=>es.fo
 initView();
 </script>
 <script>
-(function(){function postH(){try{parent.postMessage({crocH:document.documentElement.scrollHeight},'*');}catch(e){}}window.addEventListener('load',postH);window.addEventListener('resize',postH);if(window.ResizeObserver){new ResizeObserver(postH).observe(document.body);}setInterval(postH,1000);})();
+(function(){
+  function ch(){
+    var el=document.getElementById('croc-app');
+    var h = el ? Math.ceil(el.getBoundingClientRect().height) : document.body.offsetHeight;
+    try{ parent.postMessage({crocH:h}, '*'); }catch(e){}
+  }
+  window.addEventListener('load', ch);
+  window.addEventListener('resize', ch);
+  if(window.ResizeObserver){ var ro=new ResizeObserver(ch); var el=document.getElementById('croc-app'); if(el) ro.observe(el); ro.observe(document.body); }
+  setInterval(ch, 800);
+})();
 </script>
 </body>
 </html>
