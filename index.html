@@ -335,7 +335,7 @@ function buildModelsFromCSV(text){
   const head=rows[0].map(h=>h.trim()); const ix=n=>head.indexOf(n);
   const iTitle=ix('title'),iDesc=ix('description'),iAvail=ix('availability'),iInv=ix('inventory'),iPrice=ix('price'),iSale=ix('sale_price'),iLink=ix('link'),iImg=ix('image_link'),iGroup=ix('item_group_id'),iType=ix('product_type'),iId=ix('id');
   const num=s=>{s=String(s||'').replace(/[^0-9.,]/g,'').replace(/,/g,'');const v=parseFloat(s);return isNaN(v)?0:Math.round(v);};
-  const groups={};
+  const groups={}; const order=[];
   for(let r=1;r<rows.length;r++){
     const row=rows[r]; if(!row||row.length<3) continue;
     const gid=String(row[iGroup]||row[iId]||'').trim(); if(!gid) continue;
@@ -349,12 +349,12 @@ function buildModelsFromCSV(text){
     const cat=(String(row[iType]||'').trim())||'Crocs';
     const availN=/in stock/i.test(String(row[iAvail]||''))?(num(row[iInv])||9999):0;
     let g=groups[gid];
-    if(!g){ g=groups[gid]={id:gid,name:name,price:now,oldprice:old,cat:cat,pics:[],sizes:[],desc:String(row[iDesc]||'').trim(),url:url,audience:'adult',top:false}; }
+    if(!g){ g=groups[gid]={id:gid,name:name,price:now,oldprice:old,cat:cat,pics:[],sizes:[],desc:String(row[iDesc]||'').trim(),url:url,audience:'adult',top:false}; order.push(gid); }
     if(img && g.pics.indexOf(img)<0) g.pics.push(img);
     var vid=String(row[iId]||'').trim();
     if(size) g.sizes.push({size:size,avail:availN,vid:vid});
   }
-  let models=Object.values(groups);
+  let models=order.map(gid=>groups[gid]);
   const isKid=s=>/(^|[^A-Za-z])[CJK]\d/i.test(s);
   models.forEach(m=>{
     m.audience=(m.sizes.some(s=>isKid(s.size))||/діт|kids|baby/i.test(m.name))?'kids':'adult';
@@ -613,7 +613,7 @@ function renderCatalog(params){
       </div>
       <div class="tools2">
         <div class="search"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="catSearch" placeholder="Пошук моделі..."></div>
-        <select class="selsort" id="catSort"><option value="pop">Спершу популярні</option><option value="cheap">Дешевші спершу</option><option value="exp">Дорожчі спершу</option><option value="disc">Найбільша знижка</option></select>
+        <select class="selsort" id="catSort"><option value="pop">Рекомендовані</option><option value="cheap">Дешевші спершу</option><option value="exp">Дорожчі спершу</option><option value="disc">Найбільша знижка</option></select>
       </div>
     </div>
   </div>
@@ -660,7 +660,7 @@ function applyCat(){
   if(s==='cheap') list=[...list].sort((a,b)=>a.price-b.price);
   else if(s==='exp') list=[...list].sort((a,b)=>b.price-a.price);
   else if(s==='disc') list=[...list].sort((a,b)=>disc(b)-disc(a));
-  else list=[...list].sort((a,b)=>(b.top?1:0)-(a.top?1:0)||disc(b)-disc(a));
+  // інакше ('pop') — залишаємо порядок як у фіді
   const grid=document.getElementById('catGrid'),bar=document.getElementById('resBar');
   bar.innerHTML=`Знайдено <b>${list.length}</b> ${plural(list.length,'модель','моделі','моделей')}`;
   grid.innerHTML = list.length?list.map(cardHTML).join(''):`<div class="empty" style="grid-column:1/-1">Нічого не знайдено. Спробуй інший запит.</div>`;
