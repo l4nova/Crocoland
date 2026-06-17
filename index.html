@@ -351,7 +351,8 @@ function buildModelsFromCSV(text){
     let g=groups[gid];
     if(!g){ g=groups[gid]={id:gid,name:name,price:now,oldprice:old,cat:cat,pics:[],sizes:[],desc:String(row[iDesc]||'').trim(),url:url,audience:'adult',top:false}; }
     if(img && g.pics.indexOf(img)<0) g.pics.push(img);
-    if(size) g.sizes.push({size:size,avail:availN});
+    var vid=String(row[iId]||'').trim();
+    if(size) g.sizes.push({size:size,avail:availN,vid:vid});
   }
   let models=Object.values(groups);
   const isKid=s=>/(^|[^A-Za-z])[CJK]\d/i.test(s);
@@ -386,10 +387,17 @@ const SVG = {
 /* ============ ORDERS → TILDA CART (postMessage bridge) ============ */
 const STORE_URL='https://crocoland.com.ua';
 const IN_FRAME=(window.parent && window.parent!==window);
-function tildaAdd(id){
+function modelHasSizes(m){ return m.sizes && m.sizes.length && !(m.sizes.length===1 && m.sizes[0].size==='Універсальний'); }
+function tildaAdd(id, sel){
   const m=byId[id]; if(!m) return;
-  const payload={name:m.name, price:m.price, sku:m.id, img:(m.pics&&m.pics[0])||'', url:m.url||''};
-  if(IN_FRAME){ window.parent.postMessage({tcartAdd:payload},'*'); toast('«'+m.name+'» додано в кошик 🛒'); }
+  if(modelHasSizes(m)){
+    if(!sel){ toast('Оберіть розмір 👟'); const sb=document.getElementById('sizeBox'); if(sb) sb.animate([{transform:'translateX(0)'},{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:300}); return; }
+    if(sel.avail!==undefined && Number(sel.avail)<=0){ toast('Цей розмір недоступний'); return; }
+  }
+  const sku=(sel&&sel.vid)?sel.vid:m.id;
+  const size=sel?sel.size:'';
+  const payload={name:m.name, price:m.price, sku:sku, size:size, img:(m.pics&&m.pics[0])||'', url:m.url||''};
+  if(IN_FRAME){ window.parent.postMessage({tcartAdd:payload},'*'); toast('«'+m.name+'»'+(size?' ('+String(size).split(' ')[0]+')':'')+' додано 🛒'); }
   else { window.open(m.url||STORE_URL,'_blank','noopener'); }
 }
 function openCart(){
@@ -481,7 +489,7 @@ function cardHTML(m){
     </div>
   </div>`;
 }
-function quickAdd(id){tildaAdd(id);}
+function quickAdd(id){const m=byId[id]; if(!m) return; if(modelHasSizes(m)){ go('#/product/'+id); } else { tildaAdd(id, null); }}
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 /* ============ HOME ============ */
@@ -662,6 +670,8 @@ function renderProduct(id){
   if(!m){document.getElementById('app').innerHTML='<div class="wrap" style="padding:80px 0;text-align:center"><h2>Товар не знайдено</h2><br><a class="btn btn-dark" onclick="go(\'#/catalog\')">До каталогу</a></div>'+footerHTML();return;}
   const d=disc(m);
   const sizes=m.sizes&&m.sizes.length?m.sizes:[{size:'Універсальний',avail:9999}];
+  const anyStock=sizes.some(s=>s.avail>0);
+  const firstStock=sizes.find(s=>s.avail>0);
   const similar=MODELS.filter(x=>x.cat===m.cat&&x.id!==m.id).slice(0,4);
   const sim2=similar.length<4?similar.concat(MODELS.filter(x=>x.audience===m.audience&&x.id!==m.id&&x.cat!==m.cat).slice(0,4-similar.length)):similar;
   document.getElementById('app').innerHTML=`
@@ -678,10 +688,10 @@ function renderProduct(id){
         <h1>${esc(m.name)}</h1>
         <div class="pricebar"><span class="now">${fmt(m.price)} ₴</span>${d?`<span class="old">${fmt(m.oldprice)} ₴</span><span class="save">−${d}% · економія ${fmt(m.oldprice-m.price)} ₴</span>`:''}</div>
         <div class="sizes-h"><h4>Розмір</h4><a onclick="toast('Розмірна сітка скоро з’явиться 📏')">Таблиця розмірів</a></div>
-        <div class="sizebox" id="sizeBox">${sizes.map((s,i)=>`<button data-size="${esc(s.size)}" ${s.avail===0?'disabled':''} onclick="pickSize(this)">${esc(s.size)}</button>`).join('')}</div>
+        <div class="sizebox" id="sizeBox">${sizes.map((s,i)=>`<button data-size="${esc(s.size)}" data-vid="${esc(s.vid||'')}" data-avail="${s.avail}" class="${s.avail<=0?'soldout':''}" ${s.avail<=0?'disabled':''} onclick="pickSize(this)">${esc(s.size)}</button>`).join('')}</div>
         <div class="buyrow">
           <div class="qty"><button onclick="qChange(-1)">−</button><span id="qVal">1</span><button onclick="qChange(1)">+</button></div>
-          <button class="btn btn-dark" onclick="buyNow('${m.id}')">Додати в кошик <span class="arrow">${SVG.arrow}</span></button>
+          ${anyStock?`<button class="btn btn-dark" onclick="buyNow('${m.id}')">Додати в кошик <span class="arrow">${SVG.arrow}</span></button>`:`<button class="btn btn-dark" disabled style="opacity:.5;cursor:not-allowed">Немає в наявності</button>`}
         </div>
         <div class="feat-list">
           <div>${SVG.shield} Оригінал Crocs</div><div>${SVG.truck} Доставка 24 год</div><div>${SVG.back} Повернення 14 днів</div>
@@ -692,14 +702,16 @@ function renderProduct(id){
     ${sim2.length?`<section style="margin-top:70px"><div class="sec-head"><div><div class="tag">Схожі моделі</div><h2 style="margin-top:14px;font-size:38px">Вам також сподобається</h2></div></div><div class="pgrid">${sim2.map(cardHTML).join('')}</div></section>`:''}
   </div>
   ${footerHTML()}`;
-  PDP={qty:1,size:null};
+  PDP={qty:1,size:firstStock?firstStock.size:null,vid:firstStock?firstStock.vid:null,avail:firstStock?firstStock.avail:0};
+  const fsIdx=sizes.findIndex(s=>s.avail>0);
+  if(fsIdx>=0){ const b=document.querySelectorAll('#sizeBox button')[fsIdx]; if(b) b.classList.add('on'); }
 }
 let PDP={qty:1,size:null};
 function setG(i){const m=byId[curId()];document.getElementById('gImg').src=m.pics[i];document.querySelectorAll('#thumbs .thumb').forEach((t,j)=>t.classList.toggle('on',j===i));}
 function curId(){return VIEW.path.split('/product/')[1];}
-function pickSize(btn){document.querySelectorAll('#sizeBox button').forEach(b=>b.classList.remove('on'));btn.classList.add('on');PDP.size=btn.dataset.size;}
+function pickSize(btn){document.querySelectorAll('#sizeBox button').forEach(b=>b.classList.remove('on'));btn.classList.add('on');PDP.size=btn.dataset.size;PDP.vid=btn.dataset.vid;PDP.avail=Number(btn.dataset.avail);}
 function qChange(d){PDP.qty=Math.max(1,PDP.qty+d);document.getElementById('qVal').textContent=PDP.qty;}
-function buyNow(id){tildaAdd(id);}
+function buyNow(id){tildaAdd(id, PDP.size?{size:PDP.size,vid:PDP.vid,avail:PDP.avail}:null);}
 
 /* ============ FOOTER ============ */
 function footerHTML(){return '';}
@@ -712,13 +724,8 @@ initView();
 </script>
 <script>
 (function(){
-  function ch(){
-    var el=document.getElementById('croc-app');
-    var h = el ? Math.ceil(el.getBoundingClientRect().height) : document.body.offsetHeight;
-    try{ parent.postMessage({crocH:h}, '*'); }catch(e){}
-  }
-  window.addEventListener('load', ch);
-  window.addEventListener('resize', ch);
+  function ch(){ var el=document.getElementById('croc-app'); var h=el?Math.ceil(el.getBoundingClientRect().height):document.body.offsetHeight; try{ parent.postMessage({crocH:h}, '*'); }catch(e){} }
+  window.addEventListener('load', ch); window.addEventListener('resize', ch);
   if(window.ResizeObserver){ var ro=new ResizeObserver(ch); var el=document.getElementById('croc-app'); if(el) ro.observe(el); ro.observe(document.body); }
   setInterval(ch, 800);
 })();
