@@ -387,6 +387,9 @@ const SVG = {
 /* ============ ORDERS → TILDA CART (postMessage bridge) ============ */
 const STORE_URL='https://crocoland.com.ua';
 const IN_FRAME=(window.parent && window.parent!==window);
+const FB_CCY='UAH';
+function track(ev, data){ try{ if(IN_FRAME){ window.parent.postMessage({crocTrack:{event:ev, data:data||{}}},'*'); } }catch(e){} }
+function goAud(aud){ track('ViewContent',{content_name: aud==='kids'?'Для дітей':'Для дорослих', content_type:'product_group', content_category:aud}); go('#/catalog?aud='+aud); }
 function modelHasSizes(m){ return m.sizes && m.sizes.length && !(m.sizes.length===1 && m.sizes[0].size==='Універсальний'); }
 function tildaAdd(id, sel){
   const m=byId[id]; if(!m) return;
@@ -399,6 +402,7 @@ function tildaAdd(id, sel){
   const payload={name:m.name, price:m.price, sku:sku, size:size, img:(m.pics&&m.pics[0])||'', url:m.url||''};
   if(IN_FRAME){ window.parent.postMessage({tcartAdd:payload},'*'); toast('«'+m.name+'»'+(size?' ('+String(size).split(' ')[0]+')':'')+' додано 🛒'); }
   else { window.open(m.url||STORE_URL,'_blank','noopener'); }
+  track('AddToCart',{content_name:m.name, content_type:'product', content_ids:[String(sku)], value:m.price, currency:FB_CCY, contents:[{id:String(sku),quantity:1}]});
 }
 function openCart(){
   if(IN_FRAME){ window.parent.postMessage({tcartOpen:true},'*'); }
@@ -536,13 +540,13 @@ function renderHome(){
         <p>Дві великі колекції — для дорослих і для найменших. Тисни на плитку та переходь до всіх моделей.</p>
       </div>
       <div class="tiles rv">
-        <div class="tile adult" onclick="go('#/catalog?aud=adult')">
+        <div class="tile adult" onclick="goAud('adult')">
           <span class="tcount">${COUNTS.adult}</span>
           <div><div class="tcat">Колекція</div><h3>Для<br>дорослих</h3><div class="tdesc">Класика, платформи, сандалі та лімітовані колаборації для чоловіків і жінок.</div></div>
           <span class="tgo">Всі моделі <span class="arrow">${SVG.arrow}</span></span>
           <img class="timg" src="${adultPic}" alt="">
         </div>
-        <div class="tile kids" onclick="go('#/catalog?aud=kids')">
+        <div class="tile kids" onclick="goAud('kids')">
           <span class="tcount">${COUNTS.kids}</span>
           <div><div class="tcat">Колекція</div><h3>Для<br>дітей</h3><div class="tdesc">Яскраві моделі з улюбленими героями, зручні та безпечні для активних малюків.</div></div>
           <span class="tgo">Всі моделі <span class="arrow">${SVG.arrow}</span></span>
@@ -589,7 +593,7 @@ function renderHome(){
   ${footerHTML()}`;
   document.getElementById('bandTrack').innerHTML = Array(2).fill('<span class="star">★</span><span>ОРИГІНАЛЬНІ КР<span class="o">О</span>КСИ</span><span class="star">★</span><span>ДЛЯ ДОРОСЛИХ ТА ДІТЕЙ</span><span class="star">★</span><span>CR<span class="o">O</span>COLAND</span>').join('');
 }
-function sub(){const m=document.getElementById('mail');if(m.value&&m.value.includes('@')){toast('Готово! Перевір пошту 🎉');m.value='';}else{toast('Введи коректний email');}}
+function sub(){const m=document.getElementById('mail');if(m.value&&m.value.includes('@')){toast('Готово! Перевір пошту 🎉');track('Lead',{content_name:'newsletter'});m.value='';}else{toast('Введи коректний email');}}
 
 /* ============ CATALOG ============ */
 let CAT_STATE={aud:'all',cat:'all',q:'',sort:'pop'};
@@ -705,6 +709,7 @@ function renderProduct(id){
   PDP={qty:1,size:firstStock?firstStock.size:null,vid:firstStock?firstStock.vid:null,avail:firstStock?firstStock.avail:0};
   const fsIdx=sizes.findIndex(s=>s.avail>0);
   if(fsIdx>=0){ const b=document.querySelectorAll('#sizeBox button')[fsIdx]; if(b) b.classList.add('on'); }
+  track('ViewContent',{content_name:m.name, content_type:'product', content_ids:[String(m.id)], value:m.price, currency:FB_CCY});
 }
 let PDP={qty:1,size:null};
 function setG(i){const m=byId[curId()];document.getElementById('gImg').src=m.pics[i];document.querySelectorAll('#thumbs .thumb').forEach((t,j)=>t.classList.toggle('on',j===i));}
