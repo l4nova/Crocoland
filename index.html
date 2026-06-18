@@ -333,7 +333,9 @@ function parseCSV(text){
 function buildModelsFromCSV(text){
   const rows=parseCSV(text); if(rows.length<2) throw new Error('empty feed');
   const head=rows[0].map(h=>h.trim()); const ix=n=>head.indexOf(n);
-  const iTitle=ix('title'),iDesc=ix('description'),iAvail=ix('availability'),iInv=ix('inventory'),iPrice=ix('price'),iSale=ix('sale_price'),iLink=ix('link'),iImg=ix('image_link'),iGroup=ix('item_group_id'),iType=ix('product_type'),iId=ix('id'),iAdd=ix('additional_image_link');
+  const iTitle=ix('title'),iDesc=ix('description'),iAvail=ix('availability'),iInv=ix('inventory'),iPrice=ix('price'),iSale=ix('sale_price'),iLink=ix('link'),iImg=ix('image_link'),iGroup=ix('item_group_id'),iType=ix('product_type'),iId=ix('id');
+  // Будь-яка колонка з "image" у назві (крім головної image_link) — додаткові фото
+  const imgCols=[]; head.forEach((h,i)=>{ if(i!==iImg && /image/i.test(String(h))) imgCols.push(i); });
   const num=s=>{s=String(s||'').replace(/[^0-9.,]/g,'').replace(/,/g,'');const v=parseFloat(s);return isNaN(v)?0:Math.round(v);};
   const groups={}; const order=[];
   for(let r=1;r<rows.length;r++){
@@ -351,7 +353,7 @@ function buildModelsFromCSV(text){
     let g=groups[gid];
     if(!g){ g=groups[gid]={id:gid,name:name,price:now,oldprice:old,cat:cat,pics:[],sizes:[],desc:String(row[iDesc]||'').trim(),url:url,audience:'adult',top:false}; order.push(gid); }
     if(img && g.pics.indexOf(img)<0) g.pics.push(img);
-    if(iAdd>-1){ String(row[iAdd]||'').split(/[,|]+/).forEach(function(u){ u=u.trim(); if(u && /^https?:/i.test(u) && g.pics.indexOf(u)<0) g.pics.push(u); }); }
+    imgCols.forEach(function(ci){ String(row[ci]||'').split(/[,|\s]+/).forEach(function(u){ u=u.trim(); if(u && /^https?:\/\//i.test(u) && g.pics.indexOf(u)<0) g.pics.push(u); }); });
     var vid=String(row[iId]||'').trim();
     if(size) g.sizes.push({size:size,avail:availN,vid:vid});
   }
@@ -499,9 +501,17 @@ function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replac
 
 /* ============ HOME ============ */
 function renderHome(){
-  const tops=MODELS.filter(m=>m.top);
-  const fill=MODELS.filter(m=>!m.top && m.oldprice && m.pics.length>1).slice(0,12-tops.length);
-  const topList=tops.concat(fill).slice(0,12);
+  const TOP_PICKS=['Крокси Bayaband Charcoal','Крокси LiteRide Navy/Melon','Крокси Crocband White','Крокси дитячі Minecraft','Крокси All Terrain Chai/Multi','Крокси LiteRide Grey Light Green','Крокси LiteRide 360 Black / Citrus','Крокси Classic Crush Black','Крокси Bayaband Flip White','Крокси InMotion Grey/Light Green'];
+  const _nm=s=>String(s||'').toLowerCase().replace(/[^a-zа-яіїєґ0-9]+/gi,'');
+  const used=new Set();
+  let topList=[];
+  TOP_PICKS.forEach(p=>{
+    const np=_nm(p);
+    let m=MODELS.find(x=>!used.has(x.id)&&_nm(x.name)===np)
+        || MODELS.find(x=>!used.has(x.id)&&(_nm(x.name).includes(np)||np.includes(_nm(x.name))));
+    if(m){ used.add(m.id); topList.push(m); }
+  });
+  if(!topList.length){ const tops=MODELS.filter(m=>m.top); const fill=MODELS.filter(m=>!m.top && m.oldprice && m.pics.length>1).slice(0,12-tops.length); topList=tops.concat(fill).slice(0,12); }
   const adultPic=(MODELS.find(m=>m.audience==='adult'&&/mega|crush|classic/i.test(m.cat))||MODELS.find(m=>m.audience==='adult')).pics[0];
   const kidsPic=(MODELS.find(m=>m.audience==='kids'&&/lego|unicorn|cutie/i.test(m.name+m.cat))||MODELS.find(m=>m.audience==='kids')).pics[0];
   document.getElementById('app').innerHTML=`
