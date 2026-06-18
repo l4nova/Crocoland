@@ -598,6 +598,17 @@ function sub(){const m=document.getElementById('mail');if(m.value&&m.value.inclu
 
 /* ============ CATALOG ============ */
 let CAT_STATE={aud:'all',cat:'all',q:'',sort:'pop'};
+// Категорії, які піднімаємо нагору каталогу (впереміш між собою). Решта — у порядку фіда.
+const TOP_CATS=['Bayaband','LiteRide','Bayaband Flip','Crocband','All Terrain','In Motion','LiteRide 360','Classic Clog'];
+function _ncat(s){return String(s||'').toLowerCase().replace(/\s+/g,'');}
+function topOrder(list){
+  const want=TOP_CATS.map(_ncat);
+  const buckets=want.map(()=>[]); const rest=[];
+  list.forEach(m=>{const i=want.indexOf(_ncat(m.cat)); if(i>=0) buckets[i].push(m); else rest.push(m);});
+  const top=[]; let idx=0,added=true;
+  while(added){ added=false; for(let b=0;b<buckets.length;b++){ if(buckets[b].length>idx){ top.push(buckets[b][idx]); added=true; } } idx++; }
+  return top.concat(rest);
+}
 function renderCatalog(params){
   CAT_STATE.aud = params.aud || 'all';
   CAT_STATE.cat = 'all'; CAT_STATE.q=''; CAT_STATE.sort='pop';
@@ -661,7 +672,7 @@ function applyCat(){
   if(s==='cheap') list=[...list].sort((a,b)=>a.price-b.price);
   else if(s==='exp') list=[...list].sort((a,b)=>b.price-a.price);
   else if(s==='disc') list=[...list].sort((a,b)=>disc(b)-disc(a));
-  // інакше ('pop') — залишаємо порядок як у фіді
+  else list=topOrder(list); // 'pop' — топові категорії впереміш зверху, решта — як у фіді
   const grid=document.getElementById('catGrid'),bar=document.getElementById('resBar');
   bar.innerHTML=`Знайдено <b>${list.length}</b> ${plural(list.length,'модель','моделі','моделей')}`;
   grid.innerHTML = list.length?list.map(cardHTML).join(''):`<div class="empty" style="grid-column:1/-1">Нічого не знайдено. Спробуй інший запит.</div>`;
