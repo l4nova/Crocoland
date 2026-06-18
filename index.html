@@ -743,8 +743,14 @@ function setG(i){GIDX=i;const m=byId[curId()];document.getElementById('gImg').sr
 function zoom(){const m=byId[curId()];if(!m||!m.pics||!m.pics.length)return;if(IN_FRAME){try{window.parent.postMessage({crocZoom:{pics:m.pics,i:GIDX}},'*');}catch(e){}}else{window.open(m.pics[GIDX],'_blank','noopener');}}
 function applyGallery(id,pics){
   const m=byId[id]; if(!m||!pics||!pics.length) return;
-  const seen={}, merged=[];
-  (m.pics||[]).concat(pics).forEach(p=>{ if(p && !seen[p]){ seen[p]=1; merged.push(p); } });
+  const best={}, order=[];
+  (m.pics||[]).concat(pics).forEach(u=>{
+    if(!u) return; const clean=String(u).split('?')[0];
+    const base=clean.split('/').pop().toLowerCase();
+    if(!(base in best)){ best[base]=clean; order.push(base); }
+    else if(best[base].indexOf('/-/')>-1 && clean.indexOf('/-/')===-1){ best[base]=clean; }
+  });
+  const merged=order.map(b=>best[b]);
   m.pics=merged;
   if(curId()===id && merged.length>1){
     const gw=document.querySelector('.pdp .gwrap');
